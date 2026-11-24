@@ -36,3 +36,12 @@ JSON for scripts (parity with `frieren-stats --json`):
 ```bash
 curl 'http://localhost:4321/api/overview.json?days=14'
 ```
+
+## Related
+
+- [frieren-desk](https://github.com/frieren-labs/frieren-desk) owns the database:
+  `hooks/frieren-log.sh` writes `turns`/`tools`, `shell.qml` writes
+  `conversations`/`messages`/`reminders`. This project never writes.
+- [frieren-desk#32](https://github.com/frieren-labs/frieren-desk/issues/32)
+  tracks durable memory with a usage dashboard. The activity half lives here;
+  the `memory_hits` half lands here once the desk side creates the table.
