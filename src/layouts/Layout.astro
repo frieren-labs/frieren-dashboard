@@ -1,0 +1,57 @@
+---
+import '../index.css';
+
+interface Props {
+  title: string;
+  active?: string;
+}
+
+const { title, active = '' } = Astro.props;
+const links = [
+  { href: '/', label: 'Overview' },
+  { href: '/turns', label: 'Turns' },
+  { href: '/tools', label: 'Tools' },
+  { href: '/conversations', label: 'History' },
+  { href: '/reminders', label: 'Reminders' },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} · Frieren Dashboard</title>
+  </head>
+  <body class="min-h-screen bg-frieren-bg font-sans text-frieren-text antialiased">
+    <header class="border-b border-frieren-border bg-frieren-surface">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
+        <a href="/" class="text-lg font-bold tracking-tight">
+          <span class="text-frieren-accent">Frieren</span>
+          <span class="text-frieren-muted"> dashboard</span>
+        </a>
+        <nav class="flex flex-wrap gap-1 text-sm">
+          {
+            links.map((l) => (
+              <a
+                href={l.href}
+                aria-current={active === l.href ? 'page' : undefined}
+                class:list={[
+                  'rounded-md px-3 py-1.5 transition-colors',
+                  active === l.href
+                    ? 'bg-frieren-card text-frieren-accent'
+                    : 'text-frieren-muted hover:bg-frieren-card hover:text-frieren-text',
+                ]}
+              >
+                {l.label}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto max-w-6xl px-4 py-6">
+      <slot />
+    </main>
+  </body>
+</html>

@@ -1,0 +1,48 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { dbPath, dbExists, getTurns } from '../lib/db';
+
+const status = Astro.url.searchParams.get('ok') === '1' ? 'ok' : Astro.url.searchParams.get('ok') === '0' ? 'fail' : 'all';
+const limit = Math.min(Math.max(Number(Astro.url.searchParams.get('limit') ?? 100) || 100, 10), 500);
+const path = dbPath();
+const turns = dbExists(path) ? getTurns(path, limit, status) : [];
+---
+
+<Layout title="Turns" active="/turns">
+  <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
+    <h1 class="text-xl font-bold">Turns</h1>
+    <span class="text-frieren-muted">· {turns.length} shown</span>
+    <div class="ml-auto flex gap-1">
+      <a href="/turns?ok=all" class:list={['rounded-md px-3 py-1', status === 'all' ? 'bg-frieren-card text-frieren-accent' : 'text-frieren-muted hover:text-frieren-text']}>all</a>
+      <a href="/turns?ok=1" class:list={['rounded-md px-3 py-1', status === 'ok' ? 'bg-frieren-card text-frieren-accent' : 'text-frieren-muted hover:text-frieren-text']}>ok</a>
+      <a href="/turns?ok=0" class:list={['rounded-md px-3 py-1', status === 'fail' ? 'bg-frieren-card text-frieren-accent' : 'text-frieren-muted hover:text-frieren-text']}>failed</a>
+    </div>
+  </div>
+  {
+    turns.length === 0 ? (
+      <p class="text-sm text-frieren-muted">No turns match this filter.</p>
+    ) : (
+      <div class="space-y-2">
+        {turns.map((t) => (
+          <article class="rounded-xl border border-frieren-border bg-frieren-surface p-3">
+            <div class="flex flex-wrap items-center gap-2 font-mono text-xs text-frieren-muted">
+              <span class:list={[t.ok === 1 ? 'text-frieren-ok' : 'text-frieren-fail']}>
+                {t.ok === 1 ? 'ok' : 'fail'}
+              </span>
+              <span>{t.ts}</span>
+              <span class="ml-auto">{t.duration_ms ?? 0} ms</span>
+            </div>
+            <p class="mt-1 truncate text-sm">{t.prompt || '(empty prompt)'}</p>
+            <div class="mt-1 flex flex-wrap gap-3 font-mono text-xs text-frieren-muted">
+              {t.model && <span>{t.model}</span>}
+              <span>
+                tools {t.tools_total ?? 0} total / {t.tools_failed ?? 0} failed
+              </span>
+              {t.error && <span class="text-frieren-fail">{t.error}</span>}
+            </div>
+          </article>
+        ))}
+      </div>
+    )
+  }
+</Layout>

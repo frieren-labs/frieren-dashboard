@@ -1,0 +1,54 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { dbPath, dbExists, getReminders, getReminderCounts } from '../lib/db';
+
+const path = dbPath();
+const exists = dbExists(path);
+const counts = exists ? getReminderCounts(path) : { pending: 0, done: 0 };
+const pending = exists ? getReminders(path, 0, 200) : [];
+const done = exists ? getReminders(path, 1, 100) : [];
+---
+
+<Layout title="Reminders" active="/reminders">
+  <h1 class="mb-4 text-xl font-bold">
+    Reminders <span class="text-base font-normal text-frieren-muted">· {counts.pending} pending / {counts.done} done</span>
+  </h1>
+  <section class="rounded-xl border border-frieren-border bg-frieren-surface p-4">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-frieren-muted">Pending</h2>
+    {
+      pending.length === 0 ? (
+        <p class="mt-3 text-sm text-frieren-muted">Nothing scheduled.</p>
+      ) : (
+        <ul class="mt-3 space-y-1 text-sm">
+          {pending.map((r) => (
+            <li class="flex flex-wrap gap-3 rounded-lg bg-frieren-card px-3 py-2">
+              <span>{r.title}</span>
+              <span class="ml-auto font-mono text-xs text-frieren-muted">
+                {r.due_at ? `${new Date(r.due_at * 1000).toLocaleString()} · ${r.recurrence}` : 'sin fecha'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+  <section class="mt-6 rounded-xl border border-frieren-border bg-frieren-surface p-4">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-frieren-muted">Done</h2>
+    {
+      done.length === 0 ? (
+        <p class="mt-3 text-sm text-frieren-muted">Nothing completed yet.</p>
+      ) : (
+        <ul class="mt-3 space-y-1 text-sm text-frieren-muted">
+          {done.map((r) => (
+            <li class="flex flex-wrap gap-3 rounded-lg bg-frieren-card px-3 py-2">
+              <span>{r.title}</span>
+              <span class="ml-auto font-mono text-xs">
+                {r.due_at ? new Date(r.due_at * 1000).toLocaleString() : 'sin fecha'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+</Layout>

@@ -1,0 +1,53 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { dbPath, dbExists, getTools } from '../lib/db';
+
+const status = Astro.url.searchParams.get('ok') === '1' ? 'ok' : Astro.url.searchParams.get('ok') === '0' ? 'fail' : 'all';
+const limit = Math.min(Math.max(Number(Astro.url.searchParams.get('limit') ?? 200) || 200, 10), 500);
+const path = dbPath();
+const tools = dbExists(path) ? getTools(path, limit, status) : [];
+---
+
+<Layout title="Tools" active="/tools">
+  <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
+    <h1 class="text-xl font-bold">Tool calls</h1>
+    <span class="text-frieren-muted">· {tools.length} shown</span>
+    <div class="ml-auto flex gap-1">
+      <a href="/tools?ok=all" class:list={['rounded-md px-3 py-1', status === 'all' ? 'bg-frieren-card text-frieren-accent' : 'text-frieren-muted hover:text-frieren-text']}>all</a>
+      <a href="/tools?ok=1" class:list={['rounded-md px-3 py-1', status === 'ok' ? 'bg-frieren-card text-frieren-accent' : 'text-frieren-muted hover:text-frieren-text']}>ok</a>
+      <a href="/tools?ok=0" class:list={['rounded-md px-3 py-1', status === 'fail' ? 'bg-frieren-card text-frieren-accent' : 'text-frieren-muted hover:text-frieren-text']}>failed</a>
+    </div>
+  </div>
+  {
+    tools.length === 0 ? (
+      <p class="text-sm text-frieren-muted">No tool calls match this filter.</p>
+    ) : (
+      <div class="overflow-x-auto rounded-xl border border-frieren-border bg-frieren-surface">
+        <table class="w-full text-left font-mono text-xs">
+          <thead>
+            <tr class="text-frieren-muted">
+              <th class="px-3 py-2 font-normal">ts</th>
+              <th class="px-3 py-2 font-normal">tool</th>
+              <th class="px-3 py-2 font-normal">command</th>
+              <th class="px-3 py-2 text-right font-normal">status</th>
+              <th class="px-3 py-2 text-right font-normal">ms</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tools.map((t) => (
+              <tr class="border-t border-frieren-border">
+                <td class="whitespace-nowrap px-3 py-1.5 text-frieren-muted">{t.ts}</td>
+                <td class="px-3 py-1.5">{t.tool}</td>
+                <td class="max-w-md truncate px-3 py-1.5">{t.command || '—'}</td>
+                <td class:list={['px-3 py-1.5 text-right', t.ok === 1 ? 'text-frieren-ok' : 'text-frieren-fail']}>
+                  {t.status || (t.ok === 1 ? 'ok' : 'fail')}
+                </td>
+                <td class="px-3 py-1.5 text-right text-frieren-muted">{t.duration_ms ?? 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+</Layout>

@@ -1,0 +1,91 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { dbPath, dbExists, getConversations, getMessages, searchMessages } from '../lib/db';
+
+const path = dbPath();
+const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 200);
+const openId = Astro.url.searchParams.get('id') ?? '';
+const exists = dbExists(path);
+const conversations = exists ? getConversations(path, 100) : [];
+const searched = exists && q ? searchMessages(path, q, 100) : [];
+const openMessages = exists && openId ? getMessages(path, openId, 500) : [];
+const openTitle = conversations.find((c) => c.id === openId)?.title ?? openId;
+---
+
+<Layout title="History" active="/conversations">
+  <h1 class="mb-4 text-xl font-bold">Conversations</h1>
+  <form method="get" action="/conversations" class="mb-4 flex gap-2">
+    <input
+      type="search"
+      name="q"
+      value={q}
+      placeholder="Search messages (FTS)…"
+      class="w-full rounded-lg border border-frieren-border bg-frieren-surface px-3 py-2 text-sm outline-none placeholder:text-frieren-muted focus:border-frieren-accent"
+    />
+    <button type="submit" class="rounded-lg bg-frieren-card px-4 py-2 text-sm text-frieren-accent">
+      Search
+    </button>
+  </form>
+
+  {
+    q ? (
+      <section class="rounded-xl border border-frieren-border bg-frieren-surface p-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-frieren-muted">
+          {searched.length} results for “{q}”
+        </h2>
+        <div class="mt-3 space-y-2">
+          {searched.map((m) => (
+            <article class="rounded-lg bg-frieren-card p-3">
+              <div class="font-mono text-xs text-frieren-muted">
+                {m.role} · {new Date(m.ts * 1000).toLocaleString()}
+              </div>
+              <p class="mt-1 line-clamp-3 whitespace-pre-wrap text-sm">{m.text.slice(0, 500)}</p>
+              <a href={`/conversations?id=${m.conversation_id}`} class="mt-1 inline-block font-mono text-xs text-frieren-accent">
+                open conversation →
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+    ) : openId ? (
+      <section class="rounded-xl border border-frieren-border bg-frieren-surface p-4">
+        <div class="mb-3 flex items-center gap-3">
+          <a href="/conversations" class="text-sm text-frieren-accent">← back</a>
+          <h2 class="truncate text-sm font-semibold">{openTitle || '(untitled)'}</h2>
+        </div>
+        <div class="space-y-2">
+          {openMessages.map((m) => (
+            <article class="rounded-lg bg-frieren-card p-3">
+              <div class="font-mono text-xs text-frieren-muted">
+                {m.role} · {m.ts ? new Date(m.ts * 1000).toLocaleString() : '—'}
+              </div>
+              <p class="mt-1 whitespace-pre-wrap text-sm">{m.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    ) : (
+      <div class="space-y-2">
+        {conversations.length === 0 && (
+          <p class="text-sm text-frieren-muted">No conversations yet.</p>
+        )}
+        {conversations.map((c) => (
+          <a
+            href={`/conversations?id=${c.id}`}
+            class="block rounded-xl border border-frieren-border bg-frieren-surface p-3 hover:border-frieren-accent"
+          >
+            <div class="flex items-center gap-3">
+              <span class="truncate text-sm font-medium">{c.title || '(untitled)'}</span>
+              <span class="ml-auto shrink-0 font-mono text-xs text-frieren-muted">
+                {c.message_count} msgs
+              </span>
+            </div>
+            <p class="mt-1 font-mono text-xs text-frieren-muted">
+              updated {c.updated_at ? new Date(c.updated_at * 1000).toLocaleString() : '—'}
+            </p>
+          </a>
+        ))}
+      </div>
+    )
+  }
+</Layout>

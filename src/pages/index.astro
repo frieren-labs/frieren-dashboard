@@ -1,0 +1,132 @@
+---
+import Layout from '../layouts/Layout.astro';
+import StatCard from '../components/StatCard.astro';
+import { dbPath, dbExists, getDaily, getTotals, getTopFailing, getSlowestTurns, getReminders, getReminderCounts } from '../lib/db';
+
+const path = dbPath();
+const exists = dbExists(path);
+const daily = exists ? getDaily(path, 14) : [];
+const totals = exists ? getTotals(path) : null;
+const failing = exists ? getTopFailing(path, 10) : [];
+const slowest = exists ? getSlowestTurns(path, 10) : [];
+const reminderCounts = exists ? getReminderCounts(path) : { pending: 0, done: 0 };
+const pendingReminders = exists ? getReminders(path, 0, 8) : [];
+---
+
+<Layout title="Overview" active="/">
+  {
+    !exists && (
+      <div class="rounded-xl border border-frieren-fail/40 bg-frieren-fail/10 p-4 text-sm">
+        No database found at <code class="font-mono">{path}</code>. Set{' '}
+        <code class="font-mono">FRIEREN_DB</code> or run frieren-desk once to create it.
+      </div>
+    )
+  }
+
+  <section class="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <StatCard label="Turns (all time)" value={String(totals?.turns ?? 0)} />
+    <StatCard label="Success rate" value={`${totals?.ok_pct ?? 0}%`} />
+    <StatCard label="Avg duration" value={`${totals?.avg_ms ?? 0} ms`} />
+    <StatCard label="Days tracked" value={String(daily.length)} />
+  </section>
+
+  <section class="mt-6 rounded-xl border border-frieren-border bg-frieren-surface p-4">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-frieren-muted">
+      Last {daily.length} days
+    </h2>
+    {
+      daily.length === 0 ? (
+        <p class="mt-3 text-sm text-frieren-muted">
+          No activity yet. Turns and tool calls from frieren-desk will show up here.
+        </p>
+      ) : (
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full text-left font-mono text-sm">
+            <thead>
+              <tr class="text-xs text-frieren-muted">
+                <th class="pb-2 pr-4 font-normal">day</th>
+                <th class="pb-2 pr-4 text-right font-normal">turns</th>
+                <th class="pb-2 pr-4 text-right font-normal">ok %</th>
+                <th class="pb-2 pr-4 text-right font-normal">avg ms</th>
+                <th class="pb-2 text-right font-normal">tool fails</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daily.map((d) => (
+                <tr class="border-t border-frieren-border">
+                  <td class="py-1.5 pr-4">{d.day}</td>
+                  <td class="py-1.5 pr-4 text-right">{d.turns}</td>
+                  <td class="py-1.5 pr-4 text-right">{d.ok_pct}%</td>
+                  <td class="py-1.5 pr-4 text-right">{d.avg_ms}</td>
+                  <td class="py-1.5 text-right">{d.tool_failures}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </section>
+
+  <section class="mt-6 rounded-xl border border-frieren-border bg-frieren-surface p-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-frieren-muted">
+        Pending tasks · {reminderCounts.pending}
+      </h2>
+      <a href="/reminders" class="shrink-0 text-xs text-frieren-accent">view all →</a>
+    </div>
+    {
+      pendingReminders.length === 0 ? (
+        <p class="mt-3 text-sm text-frieren-muted">Nothing scheduled.</p>
+      ) : (
+        <ul class="mt-3 space-y-1 text-sm">
+          {pendingReminders.map((r) => (
+            <li class="flex items-baseline justify-between gap-3 rounded-lg bg-frieren-card px-3 py-2">
+              <span class="min-w-0 flex-1 truncate" title={r.title}>{r.title}</span>
+              <span class="shrink-0 whitespace-nowrap font-mono text-xs text-frieren-muted">
+                {r.due_at ? `${new Date(r.due_at * 1000).toLocaleString()} · ${r.recurrence}` : 'sin fecha'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+
+  <div class="mt-6 grid gap-6 md:grid-cols-2">
+    <section class="rounded-xl border border-frieren-border bg-frieren-surface p-4">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-frieren-muted">Top failing commands</h2>
+      {
+        failing.length === 0 ? (
+          <p class="mt-3 text-sm text-frieren-muted">No failures recorded.</p>
+        ) : (
+          <ul class="mt-3 space-y-1 font-mono text-sm">
+            {failing.map((f) => (
+              <li class="flex items-baseline justify-between gap-3">
+                <span class="min-w-0 flex-1 truncate text-frieren-text" title={f.command || undefined}>{f.command || '(empty)'}</span>
+                <span class="shrink-0 whitespace-nowrap tabular-nums text-frieren-fail">{f.fails}</span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+    <section class="rounded-xl border border-frieren-border bg-frieren-surface p-4">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-frieren-muted">Slowest turns</h2>
+      {
+        slowest.length === 0 ? (
+          <p class="mt-3 text-sm text-frieren-muted">No turns recorded.</p>
+        ) : (
+          <ul class="mt-3 space-y-1 font-mono text-sm">
+            {slowest.map((s) => (
+              <li class="flex items-baseline justify-between gap-3">
+                <span class="min-w-0 flex-1 truncate text-frieren-text" title={s.prompt || undefined}>{s.prompt || '(empty)'}</span>
+                <span class="shrink-0 whitespace-nowrap tabular-nums text-frieren-muted">{s.duration_ms} ms</span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+  </div>
+</Layout>
